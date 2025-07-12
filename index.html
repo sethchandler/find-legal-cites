@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Citation Extractor</title>
+    <!-- Using Tailwind CSS for styling from a CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a slightly better look */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Legal Citation Extractor</h1>
+            <p class="mt-2 text-md text-gray-600">Paste your text or upload a file to find legal citations.</p>
+        </header>
+
+        <main class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+            
+            <!-- Input Section -->
+            <div>
+                <label for="text-input" class="block text-sm font-medium text-gray-700">Enter your text below:</label>
+                <textarea id="text-input" rows="12" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Paste the text from your legal document here..."></textarea>
+            </div>
+
+            <!-- New: Output Format Options -->
+            <fieldset class="mt-6">
+                <legend class="block text-sm font-medium text-gray-700">Output Format</legend>
+                <div class="mt-2 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:space-x-6">
+                    <div class="flex items-center">
+                        <input id="format-string" name="output-format" type="radio" value="string" checked class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                        <label for="format-string" class="ml-3 block text-sm font-medium leading-6 text-gray-900">Simple String</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="format-json" name="output-format" type="radio" value="json" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                        <label for="format-json" class="ml-3 block text-sm font-medium leading-6 text-gray-900">JSON Object</label>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- File Upload & Submit Button -->
+            <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-2">
+                    <label for="file-upload" class="cursor-pointer rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        Upload a .txt file
+                    </label>
+                    <input id="file-upload" name="file-upload" type="file" class="sr-only" accept=".txt">
+                    <span id="file-name" class="text-sm text-gray-500">No file selected.</span>
+                </div>
+                <button id="submit-btn" class="w-full sm:w-auto flex items-center justify-center rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                    <!-- Spinner icon, hidden by default -->
+                    <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Extract Citations</span>
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-container" class="mt-8 pt-6 border-t border-gray-200 hidden">
+                <h2 class="text-xl font-semibold text-gray-900">Extracted Citations</h2>
+                <!-- The 'pre' tag helps in displaying formatted JSON correctly -->
+                <pre id="results-output" class="mt-3 w-full rounded-md bg-gray-100 p-4 text-sm text-gray-700 whitespace-pre-wrap break-words min-h-[50px]"></pre>
+            </div>
+            
+            <!-- Error Message Section -->
+            <div id="error-message" class="mt-4 p-4 rounded-md bg-red-50 text-sm text-red-700 hidden"></div>
+
+        </main>
+    </div>
+
+    <script>
+        // ---
+        // This script handles the frontend logic:
+        // 1. Reading text from a user-uploaded file.
+        // 2. Sending the text and chosen format to the Flask backend.
+        // 3. Displaying the results (string or formatted JSON) or any errors.
+        // ---
+
+        // Get references to the HTML elements
+        const textInput = document.getElementById('text-input');
+        const fileUpload = document.getElementById('file-upload');
+        const fileNameSpan = document.getElementById('file-name');
+        const submitBtn = document.getElementById('submit-btn');
+        const spinner = document.getElementById('spinner');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsOutput = document.getElementById('results-output');
+        const errorMessage = document.getElementById('error-message');
+
+        // The URL of our Flask backend API
+        const apiUrl = 'http://127.0.0.1:5000/extract';
+
+        // --- Event Listeners ---
+
+        fileUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                fileNameSpan.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    textInput.value = e.target.result;
+                };
+                reader.readAsText(file);
+            } else {
+                fileNameSpan.textContent = 'No file selected.';
+            }
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            const text = textInput.value.trim();
+            // Get the selected output format
+            const outputFormat = document.querySelector('input[name="output-format"]:checked').value;
+
+            hideError();
+            resultsOutput.textContent = '';
+            resultsContainer.classList.add('hidden');
+
+            if (!text) {
+                showError('Please enter some text or upload a file.');
+                return;
+            }
+
+            toggleLoading(true);
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    // Send both the text and the desired format
+                    body: JSON.stringify({ text: text, format: outputFormat }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'An unknown error occurred.');
+                }
+                
+                displayResults(data.citations, outputFormat);
+
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            } finally {
+                toggleLoading(false);
+            }
+        });
+
+        // --- Helper Functions ---
+
+        function displayResults(citations, format) {
+            if (!citations || (Array.isArray(citations) && citations.length === 0)) {
+                resultsOutput.textContent = 'No citations were found in the provided text.';
+            } else if (format === 'json') {
+                // Pretty-print the JSON object
+                resultsOutput.textContent = JSON.stringify(citations, null, 2);
+            } else {
+                // Display the plain string
+                resultsOutput.textContent = citations;
+            }
+            resultsContainer.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        function toggleLoading(isLoading) {
+            if (isLoading) {
+                spinner.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('cursor-not-allowed', 'opacity-75');
+            } else {
+                spinner.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('cursor-not-allowed', 'opacity-75');
+            }
+        }
+    </script>
+
+</body>
+</html>
