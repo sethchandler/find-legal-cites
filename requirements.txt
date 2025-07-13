@@ -3,4 +3,3 @@ flask-cors
 eyecite
 gunicorn
 lxml
-reporters-db
