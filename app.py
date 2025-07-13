@@ -1,4 +1,4 @@
-# app.py (Final Version with Robust Extraction Logic)
+# app.py (Fixed Version with Robust Extraction Logic and Enhanced Diagnostic Logging)
 # ---
 # This script creates a web server that does two things:
 # 1. On startup, pre-downloads the required court reporters database.
@@ -37,6 +37,7 @@ def extract_citations():
     Expects a JSON payload with a 'text' key and an optional 'format' key.
     """
     if not request.is_json:
+        print("Invalid request: Not JSON.")
         return jsonify({"error": "Request must be JSON"}), 400
 
     data = request.get_json()
@@ -44,27 +45,32 @@ def extract_citations():
     output_format = data.get('format', 'string')
 
     if not text_to_scan:
+        print("Invalid request: No text provided.")
         return jsonify({"error": "No text provided"}), 400
 
     try:
-        print("Received request. Starting citation extraction...")
+        print("Received request. Text length: {}".format(len(text_to_scan)))
+        print("Output format requested: {}".format(output_format))
+        print("Starting citation extraction...")
         
         # --- NEW ROBUST LOGIC ---
         # Use with_spans=True to get character offsets. This is more reliable
         # than relying on the citation object's internal state.
         citations_with_spans = get_citations(text_to_scan, with_spans=True)
         print(f"Found {len(citations_with_spans)} potential citations.")
-
+        print("Citations with spans: {}".format([(str(citation), span) for citation, span in citations_with_spans]))
+        
         if output_format == 'json':
             print("Formatting as JSON.")
-            # The .json() method is generally safe. We extract the citation
-            # object from the tuple before calling it.
+            # Ensure .json() is called correctly to get serializable data (typically dicts)
             result = [citation.json() for citation, span in citations_with_spans]
+            print("JSON results sample (first item): {}".format(result[0] if result else "None"))
         else:
             print("Formatting as string.")
             # Use the spans to slice the original text. This avoids errors
             # from malformed .matched_text attributes.
             citation_list = [text_to_scan[span[0]:span[1]] for citation, span in citations_with_spans]
+            print("Extracted citation strings: {}".format(citation_list))
             result = "; ".join(citation_list)
         
         print("Processing complete. Returning result.")
@@ -72,8 +78,8 @@ def extract_citations():
 
     except Exception as e:
         print("!!!!!!!!!! AN ERROR OCCURRED !!!!!!!!!!")
-        print(f"Error type: {type(e)}")
-        print(f"Error details: {e}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error details: {str(e)}")
         print("Traceback:")
         traceback.print_exc()
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
