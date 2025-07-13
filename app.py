@@ -1,15 +1,11 @@
-# app.py (Updated)
+# app.py (Final Version)
 # ---
-# This script creates a simple web server using the Flask framework.
-# It exposes a single API endpoint '/extract' that accepts text
-# and an optional 'format' parameter ('string' or 'json').
-#
-# It uses the 'eyecite' library to find legal citations and returns
-# them either as a semi-colon delimited string or a JSON array
-# of structured citation objects.
+# This script creates a web server that does two things:
+# 1. Serves the index.html file when a user visits the main page ('/').
+# 2. Handles API requests to '/extract' to find legal citations.
 # ---
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from eyecite import get_citations
 
@@ -18,6 +14,13 @@ app = Flask(__name__)
 
 # Enable Cross-Origin Resource Sharing (CORS)
 CORS(app)
+
+# --- NEW: Route to serve the frontend ---
+# This function tells Flask to send the 'index.html' file
+# whenever someone visits the root URL of your site.
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
 
 @app.route('/extract', methods=['POST'])
 def extract_citations():
@@ -62,3 +65,4 @@ def extract_citations():
 # This block allows the script to be run directly.
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
