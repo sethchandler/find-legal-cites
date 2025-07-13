@@ -2,3 +2,4 @@ Flask
 flask-cors
 eyecite
 gunicorn
+lxml
