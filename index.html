@@ -31,7 +31,7 @@
                 <textarea id="text-input" rows="12" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Paste the text from your legal document here..."></textarea>
             </div>
 
-            <!-- New: Output Format Options -->
+            <!-- Output Format Options -->
             <fieldset class="mt-6">
                 <legend class="block text-sm font-medium text-gray-700">Output Format</legend>
                 <div class="mt-2 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:space-x-6">
@@ -79,13 +79,6 @@
     </div>
 
     <script>
-        // ---
-        // This script handles the frontend logic:
-        // 1. Reading text from a user-uploaded file.
-        // 2. Sending the text and chosen format to the Flask backend.
-        // 3. Displaying the results (string or formatted JSON) or any errors.
-        // ---
-
         // Get references to the HTML elements
         const textInput = document.getElementById('text-input');
         const fileUpload = document.getElementById('file-upload');
@@ -96,8 +89,10 @@
         const resultsOutput = document.getElementById('results-output');
         const errorMessage = document.getElementById('error-message');
 
-        // The URL of our Flask backend API
-        const apiUrl = 'http://127.0.0.1:5000/extract';
+        // --- CORRECTED: Use a relative URL ---
+        // This tells the browser to send the request to the same server
+        // that served the HTML page.
+        const apiUrl = '/extract';
 
         // --- Event Listeners ---
 
@@ -117,7 +112,6 @@
 
         submitBtn.addEventListener('click', async () => {
             const text = textInput.value.trim();
-            // Get the selected output format
             const outputFormat = document.querySelector('input[name="output-format"]:checked').value;
 
             hideError();
@@ -137,7 +131,6 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    // Send both the text and the desired format
                     body: JSON.stringify({ text: text, format: outputFormat }),
                 });
 
@@ -162,10 +155,8 @@
             if (!citations || (Array.isArray(citations) && citations.length === 0)) {
                 resultsOutput.textContent = 'No citations were found in the provided text.';
             } else if (format === 'json') {
-                // Pretty-print the JSON object
                 resultsOutput.textContent = JSON.stringify(citations, null, 2);
             } else {
-                // Display the plain string
                 resultsOutput.textContent = citations;
             }
             resultsContainer.classList.remove('hidden');
@@ -195,3 +186,4 @@
 
 </body>
 </html>
+
