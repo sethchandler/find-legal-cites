@@ -46,6 +46,12 @@
                 </div>
             </fieldset>
 
+            <!-- Case Name Option (Visible only for String format) -->
+            <div id="case-name-option" class="mt-4 flex items-center hidden">
+                <input id="include-case-names" type="checkbox" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                <label for="include-case-names" class="ml-3 block text-sm font-medium leading-6 text-gray-900">Include reconstructed case names in string output</label>
+            </div>
+
             <!-- File Upload & Submit Button -->
             <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center space-x-2">
@@ -88,11 +94,32 @@
         const resultsContainer = document.getElementById('results-container');
         const resultsOutput = document.getElementById('results-output');
         const errorMessage = document.getElementById('error-message');
+        const caseNameOption = document.getElementById('case-name-option');
+        const includeCaseNamesCheckbox = document.getElementById('include-case-names');
+        const formatStringRadio = document.getElementById('format-string');
+        const formatJsonRadio = document.getElementById('format-json');
 
         // --- CORRECTED: Use a relative URL ---
         // This tells the browser to send the request to the same server
         // that served the HTML page.
         const apiUrl = '/extract';
+
+        // Toggle case name option visibility based on format selection
+        function toggleCaseNameOption() {
+            if (formatStringRadio.checked) {
+                caseNameOption.classList.remove('hidden');
+            } else {
+                caseNameOption.classList.add('hidden');
+                includeCaseNamesCheckbox.checked = false; // Reset if hidden
+            }
+        }
+
+        // Initial toggle
+        toggleCaseNameOption();
+
+        // Listen for format changes
+        formatStringRadio.addEventListener('change', toggleCaseNameOption);
+        formatJsonRadio.addEventListener('change', toggleCaseNameOption);
 
         // --- Event Listeners ---
 
@@ -113,6 +140,7 @@
         submitBtn.addEventListener('click', async () => {
             const text = textInput.value.trim();
             const outputFormat = document.querySelector('input[name="output-format"]:checked').value;
+            const includeCaseNames = includeCaseNamesCheckbox.checked;
 
             hideError();
             resultsOutput.textContent = '';
@@ -131,7 +159,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ text: text, format: outputFormat }),
+                    body: JSON.stringify({ text: text, format: outputFormat, include_case_names: includeCaseNames }),
                 });
 
                 const data = await response.json();
