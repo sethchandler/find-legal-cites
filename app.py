@@ -1,4 +1,4 @@
-# app.py (Final Version with Corrected Fetch Call)
+# app.py (Final Version with Type Correction)
 # ---
 # This script creates a web server that does two things:
 # 1. On startup, pre-downloads the required court reporters database.
@@ -9,7 +9,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from eyecite import get_citations
-from reporters_db import cli # <-- CORRECTED IMPORT
+from reporters_db import cli
 import traceback
 
 # Initialize the Flask application
@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 # --- Pre-load the reporters database on startup ---
 print("Fetching reporters database...")
-cli.fetch() # <-- CORRECTED FUNCTION CALL
+cli.fetch()
 print("Database fetch complete.")
 # ----------------------------------------------------
 
@@ -55,23 +55,24 @@ def extract_citations():
             result = [citation.json() for citation in citations]
         else:
             print("Formatting as string.")
-            citation_list = [citation.matched_text for citation in citations]
+            # --- CORRECTED: Ensure all items are strings before joining ---
+            citation_list = [str(citation.matched_text) for citation in citations]
             result = "; ".join(citation_list)
         
         print("Processing complete. Returning result.")
         return jsonify({"citations": result})
 
     except Exception as e:
-        # --- MODIFIED: More detailed logging ---
         print("!!!!!!!!!! AN ERROR OCCURRED !!!!!!!!!!")
         print(f"Error type: {type(e)}")
         print(f"Error details: {e}")
         print("Traceback:")
-        traceback.print_exc() # This prints the full error stack trace
+        traceback.print_exc()
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         return jsonify({"error": "Failed to process text"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
 
 
