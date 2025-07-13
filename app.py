@@ -1,4 +1,4 @@
-# app.py (Fresh Version Aligned with Recommendations)
+# app.py (Fresh Version Aligned with Recommendations - Typo Fixed)
 # ---
 # This script creates a web server that:
 # 1. Serves the index.html file when a user visits the main page ('/').
@@ -79,7 +79,7 @@ def extract_citations():
 
     except Exception as e:
         print("!!!!!!!!!! AN ERROR OCCURRED !!!!!!!!!!")
-        print(f"Error type: {type(e).__name__} }")
+        print(f"Error type: {type(e).__name__}")
         print(f"Error details: {str(e)}")
         print("Traceback:")
         traceback.print_exc()
