@@ -1,4 +1,4 @@
-# app.py (Final Version with Enhanced Logging)
+# app.py (Final Version with Corrected Fetch Call)
 # ---
 # This script creates a web server that does two things:
 # 1. On startup, pre-downloads the required court reporters database.
@@ -9,15 +9,15 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from eyecite import get_citations
-import reporters_db.utils
-import traceback # <-- NEW: Import for detailed error tracebacks
+from reporters_db import cli # <-- CORRECTED IMPORT
+import traceback
 
 # Initialize the Flask application
 app = Flask(__name__)
 
 # --- Pre-load the reporters database on startup ---
 print("Fetching reporters database...")
-reporters_db.utils.fetch_data()
+cli.fetch() # <-- CORRECTED FUNCTION CALL
 print("Database fetch complete.")
 # ----------------------------------------------------
 
@@ -73,4 +73,5 @@ def extract_citations():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
 
