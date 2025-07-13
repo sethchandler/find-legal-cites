@@ -62,13 +62,24 @@ def extract_citations():
         
         if output_format == 'json':
             print("Formatting as JSON.")
-            # Ensure .json() is called correctly to get serializable data (typically dicts)
-            result = [citation.json() for citation, span in citations_with_spans]
+            # Eyecite Citation objects do not have a .json() method. Instead, manually create a serializable dict.
+            # Include type, matched_text (calling the method), groups, and metadata as dict.
+            result = []
+            for citation, span in citations_with_spans:
+                cite_dict = {
+                    'type': type(citation).__name__,
+                    'matched_text': citation.matched_text(),
+                    'groups': citation.groups,
+                    'metadata': vars(citation.metadata) if citation.metadata else None,
+                    'span': span
+                }
+                result.append(cite_dict)
             print("JSON results sample (first item): {}".format(result[0] if result else "None"))
         else:
             print("Formatting as string.")
             # Use the spans to slice the original text. This avoids errors
-            # from malformed .matched_text attributes.
+            # from malformed .matched_text attributes. If matched_text() is preferred,
+            # it could be used, but spans are more robust for edge cases.
             citation_list = [text_to_scan[span[0]:span[1]] for citation, span in citations_with_spans]
             print("Extracted citation strings: {}".format(citation_list))
             result = "; ".join(citation_list)
