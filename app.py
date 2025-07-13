@@ -1,9 +1,10 @@
-# app.py (Final Version with Type Correction)
+# app.py (Final Version with Robust Extraction Logic)
 # ---
 # This script creates a web server that does two things:
 # 1. On startup, pre-downloads the required court reporters database.
 # 2. Serves the index.html file when a user visits the main page ('/').
-# 3. Handles API requests to '/extract' to find legal citations.
+# 3. Handles API requests to '/extract' to find legal citations using
+#    a robust method that handles library edge cases.
 # ---
 
 from flask import Flask, request, jsonify, send_from_directory
@@ -47,16 +48,23 @@ def extract_citations():
 
     try:
         print("Received request. Starting citation extraction...")
-        citations = get_citations(text_to_scan)
-        print(f"Found {len(citations)} citations.")
+        
+        # --- NEW ROBUST LOGIC ---
+        # Use with_spans=True to get character offsets. This is more reliable
+        # than relying on the citation object's internal state.
+        citations_with_spans = get_citations(text_to_scan, with_spans=True)
+        print(f"Found {len(citations_with_spans)} potential citations.")
 
         if output_format == 'json':
             print("Formatting as JSON.")
-            result = [citation.json() for citation in citations]
+            # The .json() method is generally safe. We extract the citation
+            # object from the tuple before calling it.
+            result = [citation.json() for citation, span in citations_with_spans]
         else:
             print("Formatting as string.")
-            # --- CORRECTED: Ensure all items are strings before joining ---
-            citation_list = [str(citation.matched_text) for citation in citations]
+            # Use the spans to slice the original text. This avoids errors
+            # from malformed .matched_text attributes.
+            citation_list = [text_to_scan[span[0]:span[1]] for citation, span in citations_with_spans]
             result = "; ".join(citation_list)
         
         print("Processing complete. Returning result.")
@@ -73,6 +81,7 @@ def extract_citations():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
 
 
 
