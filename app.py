@@ -1,4 +1,4 @@
-# app.py (Fixed Version with Robust Extraction Logic and Enhanced Diagnostic Logging)
+# app.py (Final Fixed Version with Method Calls and Enhanced Logging)
 # ---
 # This script creates a web server that does two things:
 # 1. On startup, pre-downloads the required court reporters database.
@@ -53,22 +53,21 @@ def extract_citations():
         print("Output format requested: {}".format(output_format))
         print("Starting citation extraction...")
         
-        # --- NEW ROBUST LOGIC ---
+        # --- ROBUST LOGIC ---
         # Use with_spans=True to get character offsets. This is more reliable
         # than relying on the citation object's internal state.
         citations_with_spans = get_citations(text_to_scan, with_spans=True)
-        print(f"Found {len(citations_with_spans)} potential citations.")
+        print(f"Found {len(citations_with_spans)} potential citations."")
         print("Citations with spans: {}".format([(str(citation), span) for citation, span in citations_with_spans]))
         
         if output_format == 'json':
             print("Formatting as JSON.")
-            # Eyecite Citation objects do not have a .json() method. Instead, manually create a serializable dict.
-            # Include type, matched_text (calling the method), groups, and metadata as dict.
+            # Manual serialization since no .json() method exists. Include called .matched_text().
             result = []
             for citation, span in citations_with_spans:
                 cite_dict = {
                     'type': type(citation).__name__,
-                    'matched_text': citation.matched_text(),
+                    'matched_text': citation.matched_text(),  # Call the method
                     'groups': citation.groups,
                     'metadata': vars(citation.metadata) if citation.metadata else None,
                     'span': span
@@ -77,10 +76,8 @@ def extract_citations():
             print("JSON results sample (first item): {}".format(result[0] if result else "None"))
         else:
             print("Formatting as string.")
-            # Use the spans to slice the original text. This avoids errors
-            # from malformed .matched_text attributes. If matched_text() is preferred,
-            # it could be used, but spans are more robust for edge cases.
-            citation_list = [text_to_scan[span[0]:span[1]] for citation, span in citations_with_spans]
+            # Call .matched_text() to get the strings reliably
+            citation_list = [citation.matched_text() for citation, span in citations_with_spans]
             print("Extracted citation strings: {}".format(citation_list))
             result = "; ".join(citation_list)
         
