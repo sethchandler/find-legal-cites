@@ -1,23 +1,30 @@
-# app.py (Final Version)
+# app.py (Final Version with Enhanced Logging)
 # ---
 # This script creates a web server that does two things:
-# 1. Serves the index.html file when a user visits the main page ('/').
-# 2. Handles API requests to '/extract' to find legal citations.
+# 1. On startup, pre-downloads the required court reporters database.
+# 2. Serves the index.html file when a user visits the main page ('/').
+# 3. Handles API requests to '/extract' to find legal citations.
 # ---
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from eyecite import get_citations
+import reporters_db.utils
+import traceback # <-- NEW: Import for detailed error tracebacks
 
 # Initialize the Flask application
 app = Flask(__name__)
 
+# --- Pre-load the reporters database on startup ---
+print("Fetching reporters database...")
+reporters_db.utils.fetch_data()
+print("Database fetch complete.")
+# ----------------------------------------------------
+
 # Enable Cross-Origin Resource Sharing (CORS)
 CORS(app)
 
-# --- NEW: Route to serve the frontend ---
-# This function tells Flask to send the 'index.html' file
-# whenever someone visits the root URL of your site.
+# Route to serve the frontend
 @app.route('/')
 def serve_index():
     return send_from_directory('.', 'index.html')
@@ -33,36 +40,37 @@ def extract_citations():
 
     data = request.get_json()
     text_to_scan = data.get('text')
-    # Get the desired format, defaulting to 'string' if not provided
     output_format = data.get('format', 'string')
 
     if not text_to_scan:
         return jsonify({"error": "No text provided"}), 400
 
     try:
-        # Use eyecite's get_citations function to find all citations
+        print("Received request. Starting citation extraction...")
         citations = get_citations(text_to_scan)
+        print(f"Found {len(citations)} citations.")
 
-        # Check the desired output format
         if output_format == 'json':
-            # Use the built-in .json() method for each citation object
-            # to get a list of structured dictionary objects.
+            print("Formatting as JSON.")
             result = [citation.json() for citation in citations]
         else:
-            # Default to the original behavior: a simple, delimited string.
+            print("Formatting as string.")
             citation_list = [citation.matched_text for citation in citations]
             result = "; ".join(citation_list)
-
-        # Return the result in a JSON object. The key is always "citations",
-        # but the value can be either a string or a list of objects.
+        
+        print("Processing complete. Returning result.")
         return jsonify({"citations": result})
 
     except Exception as e:
-        # Handle any potential errors during the citation extraction process
-        print(f"An error occurred: {e}")
+        # --- MODIFIED: More detailed logging ---
+        print("!!!!!!!!!! AN ERROR OCCURRED !!!!!!!!!!")
+        print(f"Error type: {type(e)}")
+        print(f"Error details: {e}")
+        print("Traceback:")
+        traceback.print_exc() # This prints the full error stack trace
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         return jsonify({"error": "Failed to process text"}), 500
 
-# This block allows the script to be run directly.
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
 
